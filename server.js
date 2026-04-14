@@ -27,6 +27,11 @@ app.use(express.urlencoded({ extended: true }));
 // Archivos estáticos (logo, css, etc) - DEBE ir antes de las rutas dinámicas
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Health check para Hostinger
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 // Configuración de multer para archivos
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
@@ -761,6 +766,15 @@ function restartServer() {
 
 // Iniciar servidor
 startServer();
+
+// Manejo de errores global (no dejar caer el servidor)
+process.on('uncaughtException', (err) => {
+  console.error('[ERROR] Uncaught Exception:', err.message);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[ERROR] Unhandled Rejection:', reason);
+});
 
 // Ctrl+R solo en desarrollo (cuando hay TTY)
 if (process.stdin.isTTY) {
