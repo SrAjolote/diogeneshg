@@ -41,21 +41,135 @@ app.get('/health', (req, res) => {
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
+// HTML inline fallback (cuando no existe el archivo public/index.html)
+function getIndexHtml() {
+  return `<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HG Consultores</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --imss-verde: #006633;
+            --imss-verde-claro: #009944;
+            --imss-verde-oscuro: #004d26;
+            --imss-blanco: #ffffff;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(180deg, var(--imss-verde) 0%, var(--imss-verde-oscuro) 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: var(--imss-blanco);
+            border-radius: 8px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            padding: 40px;
+            width: 100%;
+            max-width: 600px;
+            border-top: 5px solid var(--imss-verde-claro);
+        }
+        .logo { text-align: center; margin-bottom: 30px; }
+        .logo svg { width: 80px; height: 80px; margin: 0 auto 20px; display: block; }
+        .logo h1 {
+            font-size: 2rem;
+            color: var(--imss-verde);
+            margin-bottom: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .input-group { margin-bottom: 25px; }
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        .input-wrapper { display: flex; gap: 10px; }
+        input[type="text"] {
+            flex: 1;
+            padding: 15px 20px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--imss-verde);
+            box-shadow: 0 0 0 3px rgba(0, 102, 51, 0.1);
+        }
+        button {
+            padding: 15px 30px;
+            background: var(--imss-verde);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+        button:hover { background: var(--imss-verde-claro); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="50" cy="50" r="48" fill="#006633" stroke="#009944" stroke-width="3"/>
+                <circle cx="50" cy="50" r="38" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.3"/>
+                <text x="50" y="55" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#ffffff">HG</text>
+                <text x="50" y="32" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#ffffff" opacity="0.9">CONSULTORES</text>
+                <line x1="25" y1="62" x2="75" y2="62" stroke="#009944" stroke-width="2" stroke-linecap="round"/>
+                <circle cx="50" cy="72" r="3" fill="#ffffff"/>
+            </svg>
+            <h1>HG Consultores</h1>
+        </div>
+        <div class="input-group">
+            <label for="folioInput">Ingresa el Folio / Token / URL:</label>
+            <div class="input-wrapper">
+                <input type="text" id="folioInput" placeholder="Pega aqui el link completo de dimex" autocomplete="off">
+                <button onclick="goToProxy()">Acceder</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        function goToProxy() {
+            const input = document.getElementById('folioInput').value.trim();
+            if (!input) { alert('Ingresa un folio o URL'); return; }
+            let targetPath = encodeURIComponent(input);
+            window.location.href = '/' + targetPath;
+        }
+        document.getElementById('folioInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') goToProxy();
+        });
+    </script>
+</body>
+</html>`;
+}
+
 // =====================================================
 // RUTA PRINCIPAL - Panel de control
 // =====================================================
 app.get('/', (req, res) => {
   const indexPath = path.join(__dirname, 'public', 'index.html');
-  console.log('[ROUTE] Sirviendo index.html desde:', indexPath);
-  console.log('[ROUTE] __dirname:', __dirname);
-  console.log('[ROUTE] Archivo existe:', fs.existsSync(indexPath));
   
-  res.sendFile(indexPath, (err) => {
-    if (err) {
-      console.error('[ROUTE] Error sirviendo index.html:', err);
-      res.status(500).send('Error cargando página: ' + err.message);
-    }
-  });
+  console.log('[ROUTE] __dirname:', __dirname);
+  console.log('[ROUTE] Intentando path:', indexPath);
+  
+  // Si existe el archivo, servirlo, si no, generar HTML inline
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    console.log('[ROUTE] index.html no encontrado, sirviendo HTML inline');
+    res.send(getIndexHtml());
+  }
 });
 
 // =====================================================
@@ -819,22 +933,13 @@ if (process.stdin.isTTY) {
 // Fallback para cualquier ruta no encontrada - sirve index.html (SPA behavior)
 app.use((req, res) => {
   console.log('[FALLBACK] Ruta no encontrada:', req.path, '- sirviendo index.html');
-  res.sendFile(path.join(__dirname, 'public', 'index.html'), (err) => {
-    if (err) {
-      res.status(404).send(`
-        <!DOCTYPE html>
-        <html>
-          <head><title>Error 404 - HG Consultores</title></head>
-          <body style="font-family: Arial; text-align: center; padding: 50px;">
-            <h1 style="color: #006633;">HG Consultores</h1>
-            <h2>Error 404</h2>
-            <p>Página no encontrada: ${req.path}</p>
-            <a href="/" style="color: #006633;">Volver al inicio</a>
-          </body>
-        </html>
-      `);
-    }
-  });
+  const indexPath = path.join(__dirname, 'public', 'index.html');
+  
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.send(getIndexHtml());
+  }
 });
 
 module.exports = app;
