@@ -1,3 +1,5 @@
+console.log('[START] Iniciando servidor HG Consultores...');
+
 const express = require('express');
 const axios = require('axios');
 const cheerio = require('cheerio');
@@ -9,6 +11,9 @@ const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+console.log('[START] PORT:', PORT);
+console.log('[START] NODE_ENV:', process.env.NODE_ENV || 'not set');
 
 // Configuración
 const TARGET_DOMAIN = 'https://dimex.wflows.run';
@@ -740,19 +745,23 @@ const readline = require('readline');
 let server;
 
 function startServer() {
-  // En producción escuchar en 0.0.0.0, en local localhost
-  const host = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
+  // Siempre escuchar en 0.0.0.0 para que funcione en Hostinger y local
+  const host = '0.0.0.0';
   
   server = app.listen(PORT, host, () => {
-    console.log('╔════════════════════════════════════════════════════════╗');
-    console.log('║     HG CONSULTORES - PROXY ACTIVO                     ║');
-    console.log('╠════════════════════════════════════════════════════════╣');
-    console.log(`║  Puerto:        ${PORT}                                  ║`);
-    console.log(`║  Host:          ${host}                              ║`);
-    console.log(`║  Target:        ${TARGET_DOMAIN}              ║`);
-    console.log(`║  URL:           http://${host}:${PORT}                     ║`);
-    console.log('╚════════════════════════════════════════════════════════╝');
+    console.log('══════════════════════════════════════════════════════════');
+    console.log('     HG CONSULTORES - PROXY ACTIVO');
+    console.log('══════════════════════════════════════════════════════════');
+    console.log(`  Puerto: ${PORT}`);
+    console.log(`  Host: ${host}`);
+    console.log(`  Target: ${TARGET_DOMAIN}`);
+    console.log('══════════════════════════════════════════════════════════');
   });
+  
+  server.on('error', (err) => {
+    console.error('[ERROR] Server error:', err.message);
+  });
+  
   return server;
 }
 
