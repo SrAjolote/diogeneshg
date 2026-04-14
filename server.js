@@ -45,7 +45,17 @@ const upload = multer({ storage: storage });
 // RUTA PRINCIPAL - Panel de control
 // =====================================================
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  const indexPath = path.join(__dirname, 'public', 'index.html');
+  console.log('[ROUTE] Sirviendo index.html desde:', indexPath);
+  console.log('[ROUTE] __dirname:', __dirname);
+  console.log('[ROUTE] Archivo existe:', fs.existsSync(indexPath));
+  
+  res.sendFile(indexPath, (err) => {
+    if (err) {
+      console.error('[ROUTE] Error sirviendo index.html:', err);
+      res.status(500).send('Error cargando página: ' + err.message);
+    }
+  });
 });
 
 // =====================================================
@@ -805,5 +815,26 @@ if (process.stdin.isTTY) {
   
   console.log('║  Ctrl+R = Reiniciar  |  Ctrl+C = Detener               ║');
 }
+
+// Fallback para cualquier ruta no encontrada - sirve index.html (SPA behavior)
+app.use((req, res) => {
+  console.log('[FALLBACK] Ruta no encontrada:', req.path, '- sirviendo index.html');
+  res.sendFile(path.join(__dirname, 'public', 'index.html'), (err) => {
+    if (err) {
+      res.status(404).send(`
+        <!DOCTYPE html>
+        <html>
+          <head><title>Error 404 - HG Consultores</title></head>
+          <body style="font-family: Arial; text-align: center; padding: 50px;">
+            <h1 style="color: #006633;">HG Consultores</h1>
+            <h2>Error 404</h2>
+            <p>Página no encontrada: ${req.path}</p>
+            <a href="/" style="color: #006633;">Volver al inicio</a>
+          </body>
+        </html>
+      `);
+    }
+  });
+});
 
 module.exports = app;
