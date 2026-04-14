@@ -697,7 +697,7 @@ function modifyHtml(html, folio) {
   // Reemplazar logos y favicons por logo local HG Consultores
   $('img[src*="logo"], img[src*="favicon"], img[src*="icon"], link[rel="icon"], link[rel="shortcut icon"]').each((i, el) => {
     const attr = el.tagName === 'LINK' ? 'href' : 'src';
-    $(el).attr(attr, '/logo.png');
+    $(el).attr(attr, '/logo.svg');
   });
   
   // Reemplazar imágenes del dominio original
@@ -707,7 +707,7 @@ function modifyHtml(html, folio) {
     if (src && (src.includes('dimex') || src.includes('wflows'))) {
       // Si es logo, favicon o branding, reemplazar por logo local
       if (src.match(/(logo|favicon|icon|brand|header)/i)) {
-        $(el).attr(attr, '/logo.png');
+        $(el).attr(attr, '/logo.svg');
       }
     }
   });
@@ -717,8 +717,8 @@ function modifyHtml(html, folio) {
     const attr = el.tagName === 'LINK' ? 'href' : 'src';
     const src = $(el).attr(attr);
     if (src && src.startsWith('http') && !src.includes('localhost') && !src.includes('127.0.0.1')) {
-      // No reemplazar si ya es logo.png
-      if (!src.includes('/logo.png')) {
+      // No reemplazar si ya es logo.svg
+      if (!src.includes('/logo.svg')) {
         $(el).attr(attr, `/proxy-resource?url=${encodeURIComponent(src)}`);
       }
     }
@@ -735,16 +735,17 @@ const readline = require('readline');
 let server;
 
 function startServer() {
-  server = app.listen(PORT, () => {
+  // En producción escuchar en 0.0.0.0, en local localhost
+  const host = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
+  
+  server = app.listen(PORT, host, () => {
     console.log('╔════════════════════════════════════════════════════════╗');
-    console.log('║     SERVIDOR ESPEJO (PROXY) ACTIVO                    ║');
+    console.log('║     HG CONSULTORES - PROXY ACTIVO                     ║');
     console.log('╠════════════════════════════════════════════════════════╣');
     console.log(`║  Puerto:        ${PORT}                                  ║`);
+    console.log(`║  Host:          ${host}                              ║`);
     console.log(`║  Target:        ${TARGET_DOMAIN}              ║`);
-    console.log(`║  URL Local:     http://localhost:${PORT}                     ║`);
-    console.log('╠════════════════════════════════════════════════════════╣');
-    console.log('║  Uso: http://localhost:' + PORT + '/[FOLIO_TOKEN]          ║');
-    console.log('║  Ctrl+R = Reiniciar  |  Ctrl+C = Detener               ║');
+    console.log(`║  URL:           http://${host}:${PORT}                     ║`);
     console.log('╚════════════════════════════════════════════════════════╝');
   });
   return server;
@@ -761,23 +762,25 @@ function restartServer() {
 // Iniciar servidor
 startServer();
 
-// Configurar lectura de teclado para Ctrl+R
-readline.emitKeypressEvents(process.stdin);
+// Ctrl+R solo en desarrollo (cuando hay TTY)
 if (process.stdin.isTTY) {
+  readline.emitKeypressEvents(process.stdin);
   process.stdin.setRawMode(true);
-}
-
-process.stdin.on('keypress', (str, key) => {
-  // Ctrl+C para salir
-  if (key.ctrl && key.name === 'c') {
-    console.log('\n[EXIT] Cerrando servidor...');
-    process.exit(0);
-  }
   
-  // Ctrl+R para reiniciar
-  if (key.ctrl && key.name === 'r') {
-    restartServer();
-  }
-});
+  process.stdin.on('keypress', (str, key) => {
+    // Ctrl+C para salir
+    if (key.ctrl && key.name === 'c') {
+      console.log('\n[EXIT] Cerrando servidor...');
+      process.exit(0);
+    }
+    
+    // Ctrl+R para reiniciar
+    if (key.ctrl && key.name === 'r') {
+      restartServer();
+    }
+  });
+  
+  console.log('║  Ctrl+R = Reiniciar  |  Ctrl+C = Detener               ║');
+}
 
 module.exports = app;
